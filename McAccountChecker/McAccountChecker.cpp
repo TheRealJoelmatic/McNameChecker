@@ -2,32 +2,46 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include <Windows.h>
 #include <thread>
-#include <vector>
 #include <atomic>
 #include <chrono>
-#include <curl/curl.h>
-#include "rapidjson/document.h"
 #include <algorithm>
+#include <filesystem>
 #include <mutex>
 #include <random>
+#include <codecvt>
+
+#include <Windows.h>
+
+#include <curl/curl.h>
+#include "rapidjson/document.h"
 
 void menu(std::string message);
-void startCheck();
+void startCheck(std::string mode);
+void logo();
 void processAccounts(const std::vector<std::string>& accountslines, const std::vector<std::string>& proxyslines, int numThreads);
 void sendAPI(const std::vector<std::string>& proxyslines, std::string username);
+void printCenter(const std::string& text);
+void clearLine(int line);
+void CheckProxys(const std::vector<std::string>& proxyslines, int numThreads);
+void SendProxyRequest(const std::vector<std::string>& proxyslines);
+void updateLine(const std::string& line, int lineNumber);
+void scapeProxys();
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* response);
+std::vector<std::string> getProxiesFromURL(const std::string& url);
 static size_t DiscardResponseCallback(void* contents, size_t size, size_t nmemb, void* userp);
 bool fileExists(const std::string& filepath);
 bool createFile(const std::string& filePath);
 
-std::string accounts = "Data/Accounts/accounts.txt";
-std::string Taccounts = "Data/Accounts/Taccounts.txt";
-std::string Faccounts = "Data/Accounts/Faccounts.txt";
-std::string proxys = "Data/Proxys/proxys.txt";
+std::string accounts = "accounts.txt";
+std::string Taccounts = "Taccounts.txt";
+std::string Faccounts = "Faccounts.txt";
+std::string proxys = "proxys.txt";
+std::string Wproxys = "Wproxys.txt";
+std::string Sproxys = "scapProxys.txt";
 std::string accountsCheckDir;
 std::string proxysCheckDir;
+std::string currentProxy;
 std::wstring getExecutableDirectory();
 
 
@@ -39,6 +53,7 @@ int freeNames = 0;
 int totalLoop = 0;
 int proxyTimeouts = 0;
 int proxySuccesses = 0;
+int numConsole;
 bool proxyWorking;
 bool accountFound;
 
@@ -47,13 +62,39 @@ std::atomic<bool> stopProcessing(false);
 
 int wmain()
 {
+    HWND console = GetConsoleWindow();
+
+    RECT r;
+    GetWindowRect(console, &r);
+    LONG style = GetWindowLong(console, GWL_STYLE);
+
+    style &= ~WS_THICKFRAME;
+    style &= ~WS_MAXIMIZEBOX;
+
+    SetWindowLong(console, GWL_STYLE, style);
+
+    int width = 950;   // Desired width
+    int height = 500;  // Desired height
+    MoveWindow(console, r.left, r.top, width, height, TRUE);
     // Any starting logic
-    menu("");
+    startCheck("start");
+    menu("Thanks for Downloading");
     return NULL;
 }
 
 void menu(std::string message) {
     system("cls");
+
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFOEX csbi;
+    csbi.cbSize = sizeof(CONSOLE_SCREEN_BUFFER_INFOEX);
+    GetConsoleScreenBufferInfoEx(hConsole, &csbi); // Get current console screen buffer information
+
+    csbi.ColorTable[0] = RGB(0, 0, 128); // Set the first color in the table to blue (RGB value)
+
+    // Update the console screen buffer with the new color table
+    SetConsoleScreenBufferInfoEx(hConsole, &csbi);
+
     proxyErrors = 0;
     proxySucesses = 0;
     takenNames = 0;
@@ -61,17 +102,39 @@ void menu(std::string message) {
     totalLoop = 0;
     proxyTimeouts = 0;
     proxySuccesses = 0;
+    numConsole = 0;
 
     std::string menuOption;
 
-    std::cout << message;
-    std::cout << "Matic MC Account Name Checker\n";
-    std::cout << "\n 1 - Check Names";
-    std::cout << "\nWhat would you like to run? : ";
+    logo();
+
+    printCenter(R"DELIMITER(_______________________________)DELIMITER");
+    printCenter(R"DELIMITER(/                               \)DELIMITER");
+    printCenter(message);
+    printCenter(R"DELIMITER(\_______________________________/)DELIMITER");
+    printCenter(R"DELIMITER(_____________________________________________________|________________________________________________________)DELIMITER");
+    printCenter(R"DELIMITER(               |                                     |                                      |                 )DELIMITER");
+
+    printCenter(R"DELIMITER( _____________[1]_______________       _____________[2]_______________        _____________[3]_______________)DELIMITER");
+    printCenter(R"DELIMITER( /                               \     /                               \      /                               \)DELIMITER");
+    printCenter(R"DELIMITER( |      Check Minecraft Names    |     |      Check Them Proxies Up    |      |     Web Scape  Them Proxies   |)DELIMITER");
+    printCenter(R"DELIMITER( \_______________________________/     \_______________________________/      \_______________________________/)DELIMITER");
+
+    std::cout << "\n";
+    printCenter(R"DELIMITER(Choose An Option)DELIMITER");
+    printCenter(R"DELIMITER()DELIMITER");
     std::cin >> menuOption;
-    if (menuOption == "1" || menuOption == "check names")
+    if (menuOption == "1")
     {
-        startCheck();
+        startCheck("CMN");
+    }
+    else if (menuOption == "2")
+    {
+        startCheck("CTPU");
+    }
+    else if (menuOption == "3")
+    {
+        startCheck("WSTP");
     }
     else
     {
@@ -79,36 +142,42 @@ void menu(std::string message) {
     }
 }
 
-void startCheck() {
+void startCheck(std::string mode) {
     system("cls");
 
-    std::cout << "Checking if ACCOUNT file exists \n";
+    logo();
+    printCenter(R"DELIMITER(Checking if ACCOUNT file exists)DELIMITER");
     fileExists(accounts);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     system("cls");
+    logo();
 
-    std::cout << "Checking if PROXY file exists \n";
+    printCenter(R"DELIMITER(Checking if PROXY file exists)DELIMITER");
     fileExists(proxys);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     system("cls");
+    logo();
 
-    std::cout << "Checking if TakenAccounts file exists \n";
-    fileExists(Taccounts);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    printCenter(R"DELIMITER(Checking if PROXY file exists)DELIMITER");
+    fileExists(Wproxys);
     system("cls");
+    logo();
 
-    std::cout << "Checking if FreeAccounts file exists \n";
+    printCenter(R"DELIMITER(Checking if FreeAccounts file exists)DELIMITER");
     fileExists(Faccounts);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     system("cls");
+    logo();
 
+    printCenter(R"DELIMITER(Checking if PROXYSCAPER file exists)DELIMITER");
+    fileExists(Sproxys);
+    system("cls");
+    logo();
   
 
     system("cls");
+    logo();
 
     std::wstring executableDirectory = getExecutableDirectory();
     std::string accountsCheckDir = std::string(executableDirectory.begin(), executableDirectory.end()) + "\\" + accounts;
-    std::cout << accountsCheckDir + "\n";
+    printCenter(accountsCheckDir);
 
     std::ifstream file(accountsCheckDir);
     std::vector<std::string> accountslines; // Vector to store the lines of the file
@@ -121,21 +190,21 @@ void startCheck() {
         file.close();
     }
     else {
-        std::cout << "\nUnable to open the file. (Make sure you have some names in there)" << std::endl;
+        printCenter(R"DELIMITER(Unable to open the file.)DELIMITER");
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
-        exit(0); // Exit the program if the file cannot be opened
+        menu("Unable to open the file."); 
     }
-    for (const std::string& accountsline : accountslines) {
-        std::cout << accountsline << std::endl;
-    }
+    //for (const std::string& accountsline : accountslines) {
+    //    printCenter(accountsline);
+    //}
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     system("cls");
-
+    logo();
 
     std::string proxysCheckDir = std::string(executableDirectory.begin(), executableDirectory.end()) + "\\" + proxys;
-    std::cout << proxysCheckDir + "\n";
+    printCenter(proxysCheckDir);
 
     std::ifstream proxysfile(proxysCheckDir);
     std::vector<std::string> proxyslines; // Vector to store the lines of the file
@@ -148,56 +217,111 @@ void startCheck() {
         proxysfile.close();
     }
     else {
-        std::cout << "\nUnable to open the file. (Make sure you have some names in there)" << std::endl;
+        printCenter(R"DELIMITER(Unable to open the file.)DELIMITER");
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
-        exit(0); // Exit the program if the file cannot be opened
+        menu("Unable to open the file."); // Exit the program if the file cannot be opened
     }
-    for (const std::string& proxysline : proxyslines) {
-        std::cout << proxysline << std::endl;
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    //for (const std::string& proxysline : proxyslines) {
+    //    printCenter(proxysline);
+    //}
 
-    for (const std::string& accountsline : accountslines) {
-        std::cout << accountsline << std::endl;
-    }
+    //for (const std::string& accountsline : accountslines) {
+    //    printCenter(accountsline);
+    //}
     system("cls");
+    if (mode == "WSTP") {
+        scapeProxys();
+        return;
+    }
+    else if (mode == "start")
+    {
+        return;
+    }
+    logo();
 
-    std::cout << "Enter the number of threads to use (Recommend 500 - 1000): ";
     int numThreads;
-    std::cin >> numThreads;
+    if (mode == "CMN" || mode == "CTPU") {
+        printCenter("Enter the number of threads to use (Recommend 500 - 1000): ");
+        std::cin >> numThreads;
 
-    processAccounts(accountslines, proxyslines, numThreads);
+        system("cls");
+        logo();
+    }
+
+    system("cls");
+    logo();
+
+    printCenter("Enter CONSOLE BUFFER");
+    if (mode == "CMN" || mode == "CTPU") {
+        printCenter("the more threads the higher this should be.");
+        printCenter("Here are the recommend values");
+        printCenter("1 - 50 threads (10 buffer)");
+        printCenter("100 - 500 threads (100 buffer)");
+        printCenter("1000+ threads (200 buffer)");
+        printCenter("2000+ threads (400 buffer)");
+    }
+    else
+    {
+        printCenter("(Recommend for this is 1)");
+    }
+    std::cin >> numConsole;
+
+    if (mode == "CMN") {
+        processAccounts(accountslines, proxyslines, numThreads);
+    }
+    else if (mode == "CTPU") {
+        CheckProxys(proxyslines, numThreads);
+    }
+    else {
+        menu("An Error Has Happened");
+    }
 }
 
 void processAccounts(const std::vector<std::string>& accountslines, const std::vector<std::string>& proxyslines, int numThreads)
 {
-    std::cout << "Starting" << std::endl;
+    printCenter("Starting");
+    system("cls");
+    logo();
+
     std::string currentProxy;
+    int updateConsles = 0;
 
     // Create a vector to hold the threads
     std::vector<std::thread> threads;
     accountFound = false;  // Flag to track if account is found
-
     for (const std::string& accountsline : accountslines) {
         accountFound = false;  // Reset the flag for each account
-
+        int numLinesToUpdate = 9;
         for (const std::string& proxysline : proxyslines) {
-            system("cls");
-            totalLoop++;
-            std::cout << "\nRunning it up for " << accountsline << std::endl;
-            std::cout << "On them proxy's " << std::endl;
-            std::cout << "-----------------------------" << std::endl;
-            std::cout << "Account Names: " << accountslines.size() << std::endl;
-            std::cout << "Proxy List: " << proxyslines.size() << std::endl;
-            std::cout << "Total Loops: " << totalLoop << std::endl;
-            std::cout << "-----------------------------" << std::endl;
-            std::cout << "Progress: " << (proxySuccesses + proxyErrors + proxyTimeouts) << "/" << proxyslines.size() * accountslines.size() << std::endl;
-            std::cout << "Taken Names: " << takenNames << std::endl;
-            std::cout << "Free Names: " << freeNames << std::endl;
-            std::cout << "Proxy Errors: " << proxyErrors << std::endl;
-            std::cout << "Proxy Timeouts: " << proxyTimeouts << std::endl;
-            std::cout << "-----------------------------" << std::endl;
-            std::cout << "\n";
+            
+            if (updateConsles == 0) {
+                totalLoop++;
+                system("cls");
+                logo();
+                std::cout << "Running it up for " << accountsline << std::endl; //8
+                std::cout << "On them proxy's " << std::endl;
+                std::cout << "-----------------------------" << std::endl;
+                std::cout << "Account Names: " << accountslines.size() << std::endl; //11
+                std::cout << "Proxy List: " << proxyslines.size() << std::endl; //12
+                std::cout << "Total Loops: " << totalLoop << std::endl; //13
+                std::cout << "-----------------------------" << std::endl;
+                std::cout << "Taken Names: " << takenNames << std::endl; //15
+                std::cout << "Free Names: " << freeNames << std::endl; //16
+                std::cout << "Proxy Errors: " << proxyErrors << std::endl; //17
+                std::cout << "Proxy Timeouts: " << proxyTimeouts << std::endl; //18
+                std::cout << "-----------------------------" << std::endl;
+                updateConsles++; currentProxy;
+            }
+            else
+            {
+                if (updateConsles > numConsole) {
+                    updateConsles = 0;
+                }
+                else
+                {
+                    updateConsles++;
+                }
+            }
 
             if (!proxyWorking || proxysline != currentProxy) {
                 currentProxy = proxysline;
@@ -242,7 +366,7 @@ void processAccounts(const std::vector<std::string>& accountslines, const std::v
     }
     threads.clear();
 
-    std::cout << "Finished" << std::endl;
+    menu("Fished");
 }
 
 
@@ -265,7 +389,7 @@ void sendAPI(const std::vector<std::string>& proxyslines, std::string username)
 
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_PROXY, proxy.c_str());
-        std::cout << "proxy: " << proxy<< std::endl;
+        currentProxy = proxy;
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -316,6 +440,112 @@ void sendAPI(const std::vector<std::string>& proxyslines, std::string username)
     }
 }
 
+void CheckProxys(const std::vector<std::string>& proxyslines, int numThreads) {
+
+    system("cls");
+    logo();
+    int updateConsles = 0;
+    std::vector<std::thread> threads;
+    proxyTimeouts = 1;
+
+    CURL* curl = curl_easy_init();
+    for (const std::string& proxysline : proxyslines) {
+        if (updateConsles == 0) {
+            totalLoop++;
+            system("cls");
+            logo();
+
+            std::cout << "Running it up for " << proxysline << std::endl;
+            std::cout << "_____________________________" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "Progress: " << proxySuccesses + proxyTimeouts << "/" << proxyslines.size() << std::endl;
+            std::cout << "Proxy Working: " << proxySuccesses << std::endl;
+            std::cout << "Proxy Timeouts: " << proxyTimeouts << std::endl;
+            std::cout << "_____________________________" << std::endl;
+            updateConsles++; currentProxy;
+        }
+        else {
+            if (updateConsles > numConsole) {
+                updateConsles = 0;
+            }
+            else {
+                updateConsles++;
+            }
+        }
+        //threads and 
+
+        threads.emplace_back([&]() {
+            SendProxyRequest(proxyslines);
+            });
+
+        if (threads.size() >= numThreads) {
+            // Wait for the threads to finish
+            for (auto& thread : threads) {
+                thread.join();
+            }
+
+            // Clear the vector to reuse it for the next batch of threads
+            threads.clear();
+        }
+     
+    }
+
+    curl_easy_cleanup(curl);
+    
+    menu("Complete Saved all the working proxys in Wproxys.txt");
+}
+
+void SendProxyRequest(const std::vector<std::string>& proxyslines) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, proxyslines.size() - 1);
+
+    int randomIndex = dis(gen);
+
+    std::wstring executableDirectory = getExecutableDirectory();
+    std::wstring wproxys = L"\\Wproxys.txt";
+    wproxys = executableDirectory + wproxys;
+
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    std::string utf8Wproxys = converter.to_bytes(wproxys);
+
+    std::ofstream file(wproxys, std::ios::app);
+    if (!file.is_open()) {
+        menu("Error opening the file.");
+        return;
+    }
+
+    CURL* curl = curl_easy_init();
+    if (curl) {
+        std::string proxy = proxyslines[randomIndex];
+        std::string response;
+        std::string url = "https://api.mojang.com/users/profiles/minecraft/";
+
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_PROXY, proxy.c_str());
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+        CURLcode res = curl_easy_perform(curl);
+
+        if (res == CURLE_OPERATION_TIMEDOUT) {
+            proxyTimeouts++;
+        }
+        else {
+            proxySuccesses++;
+            file << proxy << '\n';
+            file.close();
+        }
+
+        curl_easy_cleanup(curl);
+    }
+    else {
+        // Failed to initialize Curl handle
+        std::cout << "Failed to initialize Curl handle" << std::endl;
+        proxyErrors++;
+    }
+}
 std::vector<std::string> loadProxyLines()
 {
     std::vector<std::string> proxyslines;
@@ -332,7 +562,7 @@ std::vector<std::string> loadProxyLines()
         proxysfile.close();
     }
     else {
-        std::cout << "\nUnable to open the file. (Make sure you have some proxies in there)" << std::endl;
+        printCenter("\nUnable to open the file. (Make sure you have some proxies in there)");
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
         exit(0);
     }
@@ -355,14 +585,13 @@ std::vector<std::string> loadAccountLines()
         file.close();
     }
     else {
-        std::cout << "\nUnable to open the file. (Make sure you have some names in there)" << std::endl;
+        printCenter("Unable to open the file. (Make sure you have some names in there)");
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
         exit(0);
     }
 
     return accountslines;
 }
-
 
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* response)
 {
@@ -385,21 +614,82 @@ bool fileExists(const std::string& filepath)
     std::string CheckDir = std::string(executableDirectory.begin(), executableDirectory.end()) + "/" + filepath;
     std::ifstream file(CheckDir);
     if (file.good()) {
-        std::cout << "\n\nFOUND at " + CheckDir + "\n";
+        printCenter("\nFOUND at " + CheckDir);
         return file.good();
     }
     else
     {
-        std::cout << "\n\nCould not find! creating one now at " + CheckDir + "\n";
+
+
+        // make the file
+        printCenter("\n\nCould not find! creating one now at " + CheckDir);
         if (createFile(CheckDir)) {
-            std::cout << "\n\nFile created successfully" << CheckDir << std::endl;
+            printCenter("\n\nFile created successfully" + CheckDir);
         }
         else {
-            std::cout << "\n\nFailed to create file: " << CheckDir << std::endl;
+            printCenter("\n\nFailed to create file:" + CheckDir);
             menu("Could not make a file in" + CheckDir);
         }
     }
     return file.good();
+}
+
+void scapeProxys() {
+    std::wstring executableDirectory = getExecutableDirectory();
+    std::wstring Sproxys = L"\\scapProxys.txt";
+    Sproxys = executableDirectory + Sproxys;
+
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    std::string utf8Wproxys = converter.to_bytes(Sproxys);
+
+    std::ofstream file(Sproxys, std::ios::app);
+    if (!file.is_open()) {
+        menu("Error opening the file.");
+        return;
+    }
+    std::vector<std::string> proxies = getProxiesFromURL("https://gist.githubusercontent.com/TheRealJoelmatic/d0c908aad0eeb3723f933e7532d89cac/raw/f95087fb9b5ec3bf886b7a8733c1d45b4447fdeb/gistfile1.txt");
+    for (const auto& proxy : proxies) {
+        std::cout << proxy << std::endl;
+        file << proxy << '\n';
+    }
+    file.close();
+    menu("Done: " + std::to_string(proxies.size()) + " Proxys scaped!");
+}
+
+std::vector<std::string> getProxiesFromURL(const std::string& url) {
+    std::vector<std::string> proxies;
+    std::string response;
+
+    CURL* curl = curl_easy_init();
+    if (curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+        CURLcode res = curl_easy_perform(curl);
+        if (res != CURLE_OK) {
+            std::cerr << "Failed to fetch URL: " << curl_easy_strerror(res) << std::endl;
+        }
+
+        curl_easy_cleanup(curl);
+    }
+    else {
+        std::cerr << "Failed to initialize libcurl" << std::endl;
+    }
+
+    // Process the response and extract proxies
+    size_t startPos = 0;
+    size_t endPos = response.find('\n');
+
+    while (endPos != std::string::npos) {
+        std::string proxy = response.substr(startPos, endPos - startPos);
+        proxies.push_back(proxy);
+
+        startPos = endPos + 1;
+        endPos = response.find('\n', startPos);
+    }
+
+    return proxies;
 }
 
 
@@ -415,4 +705,63 @@ std::wstring getExecutableDirectory()
     GetModuleFileNameW(NULL, buffer, MAX_PATH);
     std::wstring::size_type pos = std::wstring(buffer).find_last_of(L"\\/");
     return std::wstring(buffer).substr(0, pos);
+}
+
+
+//----------------------------
+//
+//Make it look cool
+//
+//----------------------------
+
+void printCenter(const std::string& text) {
+    // Get the console window size
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(hConsole, &csbi);
+    int consoleWidth = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+
+    // Calculate the padding on each side
+    int textLength = static_cast<int>(text.length());
+    int padding = (consoleWidth - textLength) / 2;
+
+    // Build the centered string with padding
+    std::string centeredText;
+    centeredText.append(padding, ' ');
+    centeredText.append(text);
+
+    // Print the centered text
+
+    std::cout << centeredText << std::endl;
+}
+
+void logo() {
+    printCenter(R"DELIMITER(___  ___      _   _        _____ _               _             )DELIMITER");
+    printCenter(R"DELIMITER(|  \/  |     | | (_)      /  __ \ |             | |            )DELIMITER");
+    printCenter(R"DELIMITER(| .  . | __ _| |_ _  ___  | /  \/ |__   ___  ___| | _____ _ __ )DELIMITER");
+    printCenter(R"DELIMITER(| |\/| |/ _` | __| |/ __| | |   | '_ \ / _ \/ __| |/ / _ \ '__|)DELIMITER");
+    printCenter(R"DELIMITER(| |  | | (_| | |_| | (__  | \__/\ | | |  __/ (__|   <  __/ |   )DELIMITER");
+    printCenter(R"DELIMITER(\_|  |_/\__,_|\__|_|\___|  \____/_| |_|\___|\___|_|\_\___|_|   )DELIMITER");
+    printCenter(R"DELIMITER(_______________________________________________________________)DELIMITER");
+    std::cout << "\n";
+}
+
+// Function to set the cursor position
+void gotoxy(int x, int y) {
+    COORD coord;
+    coord.X = x;
+    coord.Y = y;
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+}
+
+// Function to clear a specific line
+void clearLine(int line) {
+    gotoxy(0, line);
+    std::cout << std::string(80, ' ');
+    gotoxy(0, line);
+}
+void updateLine(const std::string& line, int lineNumber) {
+    // Move the cursor to the beginning of the line
+    std::cout << "\033[" << lineNumber << ";1H";
+    std::cout << line << std::endl;
 }
