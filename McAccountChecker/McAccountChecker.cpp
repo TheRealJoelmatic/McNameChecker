@@ -187,13 +187,6 @@ void menu(std::string message) {
     printCenter(R"DELIMITER( |      Check Minecraft Names    |     |      Check Them Proxies Up    |      |     Web Scape  Them Proxies   |)DELIMITER");
     printCenter(R"DELIMITER( \_______________________________/     \_______________________________/      \_______________________________/)DELIMITER");
 
-    printCenter(R"DELIMITER(               |                                     |                                      |                 )DELIMITER");
-
-    printCenter(R"DELIMITER( _____________[4]_______________       _____________[5]_______________        _____________[6]_______________)DELIMITER");
-    printCenter(R"DELIMITER( /                               \     /                               \      /                               \)DELIMITER");
-    printCenter(R"DELIMITER( |      Combo Editor/Remover     |     |              ?                |      |           Settings            |)DELIMITER");
-    printCenter(R"DELIMITER( \_______________________________/     \_______________________________/      \_______________________________/)DELIMITER");
-
 
     std::cout << "\n";
     printCenter(R"DELIMITER(Choose An Option)DELIMITER");
