@@ -1,5 +1,5 @@
 # 🌕 Minecraft Name Checker 🌕
-This is the fastest free tool to check thounds of minecraft names in minutes.This has a built in proxy scraper and proxy checker. The best part is that its made in c++ to have optimal performance.
+This is the fastest free tool to check thousands of Minecraft names in minutes. This has a built-in proxy scraper and proxy checker. The best part is that it's made in c++ to have optimal performance.
 
 # Pictures
 
@@ -15,7 +15,7 @@ This is the fastest free tool to check thounds of minecraft names in minutes.Thi
 Download the latest release at the [releases section](https://github.com/TheRealJoelmatic/Matic-Clicker/releases/tag/Release).
 
 ## Bugs or suggestions
-Bugs or suggestions should be reported at the [issues section](https://github.com/TheRealJoelmatic/Matic-Clicker/issues).
+Bugs or suggestions should be reported in the [issues section](https://github.com/TheRealJoelmatic/Matic-Clicker/issues).
 
 ## Credits
 Joelmatic - https://github.com/TheRealJoelmatic
@@ -28,7 +28,7 @@ Microsoft Visual Studio (Preferably the latest version) with C++ installed.
 Open the solution file `McAccountChecker.sln`, then select `Release | x64` on the Build configuration and press Build solution.
 
 ### Compiling errors
-You need curl and raidjosn to Compile this! I reccomed using to install the required dependencies.
+You need curl and raidjosn to Compile this! I recommend using it to install the required dependencies.
 - https://vcpkg.io/en/getting-started.html
 
 ## Errors
