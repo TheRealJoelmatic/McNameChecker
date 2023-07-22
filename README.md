@@ -15,6 +15,8 @@ This is a high-speed Minecraft name checker written in C++ that leverages proxie
 - Proxy list file formatted as one proxy per line (We have a proxys scaper built in so dont worry)
 - Input username list file (formatted as one username per line)
 
+## How to use
+- download and run the .exe(https://github.com/TheRealJoelmatic/McNameChecker/releases/tag/1.0)
 ## Important Notes
 
 - Ensure that you have the legal right to check the availability of Minecraft usernames. Respect Minecraft's terms of service and avoid using this tool for any malicious purposes.
