@@ -1,43 +1,30 @@
-# 🌕 Minecraft Name Checker 🌕
-This is the fastest free tool to check thousands of Minecraft names in minutes. This has a built-in proxy scraper and proxy checker. The best part is that it's made in c++ to have optimal performance.
+# Fast Minecraft Name Checker with Proxies
 
-# Pictures
+## Overview
 
-![image](https://i.ibb.co/HKTwKtH/1.jpg)
-#
-![image](https://i.ibb.co/2y86pYq/2.jpg)
-#
-![image](https://i.ibb.co/tx3K6FJ/3.jpg)
+This is a high-speed Minecraft name checker written in C++ that leverages proxies to efficiently verify the availability of Minecraft usernames. The program is designed to rapidly check a list of usernames against the Minecraft server, and the use of proxies allows for increased speed and reduced risk of IP blocking.
 
-# Getting started
+## Features
 
-## Download
-Download the latest release at the [releases section](https://github.com/TheRealJoelmatic/Matic-Clicker/releases/tag/Release).
+- **Speed**: The program is optimized for performance and can check a large number of usernames in a short period.
+- **Proxy Support**: Proxies are used to distribute requests and prevent IP-based rate limiting.
+- **Configurable**: The program is highly configurable, allowing you to set the number of threads, proxy list, and input username file.
 
-## Bugs or suggestions
-Bugs or suggestions should be reported in the [issues section](https://github.com/TheRealJoelmatic/Matic-Clicker/issues).
+## Requirements
 
-## Credits
-Joelmatic - https://github.com/TheRealJoelmatic
+- Proxy list file formatted as one proxy per line (We have a proxys scaper built in so dont worry)
+- Input username list file (formatted as one username per line)
 
-## Compiling
-### Prerequisites
-Microsoft Visual Studio (Preferably the latest version) with C++ installed.
+## Important Notes
 
-### Compiling from the source
-Open the solution file `McAccountChecker.sln`, then select `Release | x64` on the Build configuration and press Build solution.
+- Ensure that you have the legal right to check the availability of Minecraft usernames. Respect Minecraft's terms of service and avoid using this tool for any malicious purposes.
+- Using proxies can help prevent IP blocking, but it does not guarantee anonymity. Exercise caution and use reputable proxies to avoid potential security risks.
+- The speed of the name checking process depends on your internet connection and the quality of the proxies used.
 
-### Compiling errors
-You need curl and raidjosn to Compile this! I recommend using it to install the required dependencies.
-- https://vcpkg.io/en/getting-started.html
+## Acknowledgments
 
-## Errors
-### vcruntime140.dll and msvcp140.dll errors
-That happens because you don't have the runtime and libraries required for this to run.  
-Please install preferably both `x86` and `x64` packages of the VC++ 2019 runtime linked below.
-- https://aka.ms/vs/16/release/vc_redist.x86.exe
-- https://aka.ms/vs/16/release/vc_redist.x64.exe
+We want to express our gratitude to the Minecraft community for their enthusiasm and dedication to the game. This tool is not affiliated with Mojang Studios and is intended for educational and legitimate purposes only.
 
-### d3d9.dll error
-Install the following
-- https://www.microsoft.com/en-us/download/confirmation.aspx?id=35
+## Disclaimer
+
+This program is provided as-is, without any warranties or liabilities. The authors are not responsible for any misuse, damages, or illegal activities arising from the use of this tool. Use it responsibly and in accordance with the law.
